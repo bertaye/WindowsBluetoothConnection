@@ -1,5 +1,5 @@
 This project is forked from: https://github.com/Plutoberth/SonyHeadphonesClient for the purpose of creating a Bluetooth Plugin for Unity Windows & Editor (in Windows).
-I appreciate the work of the base repo since they saved a lot of time for me (and hopefully many others).
+I appreciate the work of the base repo since they saved a lot of time for me (and hopefully for many others).
 
 ## Changes
 I edited the BLE device detection part slightly, and converted the project into a lightweight DLL project so that other developers can add the BLE feauture their projects easily.
