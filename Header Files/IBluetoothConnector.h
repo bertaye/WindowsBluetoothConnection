@@ -9,9 +9,9 @@ inline constexpr auto NO_BLUETOOTH_DEVICES_ERROR = "No Bluetooth radios were fou
 
 struct BluetoothDevice
 {
-	//UTF-8
-	std::string name;
-	std::string mac;
+	int id;
+	char name[512];
+	char mac[512];
 };
 
 /*

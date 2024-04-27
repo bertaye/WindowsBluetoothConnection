@@ -29,15 +29,12 @@ void WindowsBluetoothConnector::connect(const std::string& addrStr)
 
 	SOCKADDR_BTH sab = { 0 };
 	sab.addressFamily = AF_BTH;
-	RPC_STATUS errCode = ::UuidFromStringA((RPC_CSTR)SONY_UUID, &sab.serviceClassId);
-	if (errCode != RPC_S_OK)
-	{
-		throw std::runtime_error("Couldn't create GUID: " + std::to_string(errCode));
-	}
+	sab.serviceClassId = RFCOMM_PROTOCOL_UUID;
 	sab.btAddr = MACStringToLong(addrStr);
 
 	if (::connect(this->_socket, (sockaddr*)&sab, sizeof(sab)))
 	{
+		std::cerr << std::to_string(WSAGetLastError());
 		throw RecoverableException("Couldn't connect: " + std::to_string(WSAGetLastError()), true);
 	}
 	this->_connected = true;
@@ -56,7 +53,7 @@ int WindowsBluetoothConnector::send(char* buf, size_t length)
 	auto bytesSent = ::send(this->_socket, buf, length, 0);
 	if (bytesSent == SOCKET_ERROR)
 	{
-		throw RecoverableException("Couldn't send (" + std::to_string(WSAGetLastError()) + ")", true);
+		throw std::exception("Send failed with error: %d", WSAGetLastError());
 	}
 	return bytesSent;
 }
@@ -66,8 +63,9 @@ int WindowsBluetoothConnector::recv(char* buf, size_t length)
 	auto bytesReceived = ::recv(this->_socket, buf, length, 0);
 	if (bytesReceived == SOCKET_ERROR)
 	{
-		throw RecoverableException("Couldn't recv (" + std::to_string(WSAGetLastError()) + ")", true);
+		throw std::exception("Receive failed with error: %d",WSAGetLastError());
 	}
+	buf[bytesReceived] = '\0';
 	return bytesReceived;
 }
 
@@ -81,10 +79,13 @@ std::vector<BluetoothDevice> WindowsBluetoothConnector::getConnectedDevices()
 	HBLUETOOTH_RADIO_FIND radioFindHandle = NULL;
 
 	// Search only for connected devices
-	BLUETOOTH_DEVICE_SEARCH_PARAMS dev_search_params = {
-	  sizeof(BLUETOOTH_DEVICE_SEARCH_PARAMS), 0, 0, 0, 1, 0, 15, NULL
-	};
-
+	BLUETOOTH_DEVICE_SEARCH_PARAMS dev_search_params = { sizeof(BLUETOOTH_DEVICE_SEARCH_PARAMS) };
+	dev_search_params.fReturnAuthenticated = TRUE;
+	dev_search_params.fReturnRemembered = TRUE;
+	dev_search_params.fReturnUnknown = TRUE;
+	dev_search_params.fReturnConnected = TRUE;
+	dev_search_params.fIssueInquiry = TRUE;
+	dev_search_params.cTimeoutMultiplier = 2;
 	// Iterate for available bluetooth radio devices
 	radioFindHandle = BluetoothFindFirstRadio(&radioSearchParams, &radio);
 	if (!radioFindHandle)
@@ -168,6 +169,7 @@ std::vector<BluetoothDevice> WindowsBluetoothConnector::_findDevicesInRadio(BLUE
 	std::vector<BluetoothDevice> res;
 
 	BLUETOOTH_DEVICE_INFO device_info = { sizeof(BLUETOOTH_DEVICE_INFO),0, };
+
 	HBLUETOOTH_DEVICE_FIND dev_find_handle = NULL;
 
 	// For each radio, get the first device
@@ -185,10 +187,20 @@ std::vector<BluetoothDevice> WindowsBluetoothConnector::_findDevicesInRadio(BLUE
 			throw std::runtime_error("BluetoothFindFirstDevice() failed with error code: " + std::to_string(GetLastError()));
 		}
 	}
-
+	int deviceId = 0;
 	// Get the device info
 	do {
-		res.emplace_back(BluetoothDevice{ _wstringToUtf8(device_info.szName), MACBytesToString(device_info.Address.rgBytes) });
+		std::string dvName = _wstringToUtf8(device_info.szName);
+		std::string dvMac = MACBytesToString(device_info.Address.rgBytes);
+		BluetoothDevice device = {};
+		device.id = deviceId++;
+		size_t dvNameMemcpySize = dvName.size() > sizeof(device.name) ? sizeof(device.name) : dvName.size();
+		memcpy(device.name, dvName.c_str(), dvNameMemcpySize);
+		
+		size_t dvMacMemcpySize = dvMac.size() > sizeof(device.mac) ? sizeof(device.mac) : dvMac.size();
+		memcpy(device.mac, dvMac.c_str(), dvMacMemcpySize);
+
+		res.push_back(std::move(device));
 	} while (BluetoothFindNextDevice(dev_find_handle, &device_info));
 
 	// NO more device, close the device handle
