@@ -12,7 +12,7 @@ WindowsBluetoothConnector *connector = NULL;
 std::vector<BluetoothDevice> ConnectedDevices;
 #else
 typedef struct BluetoothDevice {
-	int id;
+	int16_t id;
 	char name[512];
 	char mac[512];
 } BluetoothDevice;

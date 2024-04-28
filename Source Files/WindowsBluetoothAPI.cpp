@@ -58,7 +58,7 @@ int ConnectTo(int id)
 int Disconnect()
 {
 	CHECK_INITIALIZATION();
-
+	connector->disconnect();
 	return BT_SUCCESS;
 }
 
