@@ -1,125 +1,128 @@
-<p class="aligncenter">
-  <a href="https://github.com/Plutoberth/SonyHeadphonesClient">
-    <!-- img src="" alt="Logo" width="80" height="80"-->
-  </a>
+This project is forked from: https://github.com/Plutoberth/SonyHeadphonesClient for the purpose of creating a Bluetooth Plugin for Unity Windows & Editor (in Windows).
+I appreciate the work of the base repo since they saved a lot of time for me (and hopefully for many others).
 
-  <h1 align="center">Sony Headphones Client</h1>
-
-  This project features a PC alternative for the mobile-only Sony Headphones app.
-  <br/><br/>
-  <img width="556" src="static/showcase.gif" alt="Program Showcase"><p> <br/>
-
-  [![macOS](https://github.com/plutoberth/sonyheadphonesclient/actions/workflows/xcodebuild.yml/badge.svg)](https://github.com/Plutoberth/SonyHeadphonesClient/actions/workflows/xcodebuild.yml)
-  [![Linux & Windows](https://github.com/plutoberth/sonyheadphonesclient/actions/workflows/cmake.yml/badge.svg)](https://github.com/Plutoberth/SonyHeadphonesClient/actions/workflows/cmake.yml)
-  [![Github all releases](https://img.shields.io/github/downloads/Plutoberth/SonyHeadphonesClient/total.svg)](https://GitHub.com/Plutoberth/SonyHeadphonesClient/releases/)
-  [![Donate](static/badge.svg)](https://paypal.me/plutoberth)
-  <br/>
-</p>
-
-<!-- TABLE OF CONTENTS -->
-## Table of Contents
-
-* [Disclaimer](#disclaimer)
-* [Download](#download)
-* [Motivation](#motivation)
-* [Features](#features)
-* [Supported Platforms](#supported-platforms-and-headsets)
-* [For Developers](#for-developers)
-* [Contributors](#contributors)
-* [License](#license)
-
-<!-- disclaimer -->
-## Disclaimer
-
-### THIS PROGRAM IS NOT AFFILIATED WITH SONY. YOU ARE RESPONSIBLE FOR ANY DAMAGE THAT MAY OCCUR WHILE USING THIS PROGRAM.
-
-## Download
-
-You can download compiled versions of the client from the [releases page](https://github.com/Plutoberth/SonyHeadphonesClient/releases).
-
-**Note:** If you're getting an error like `VCRUNTIME140_1.dll was not found`, you need to install the `Microsoft VC++ Redistributable`.
-
-## Motivation
-
-I recently bought the WH-1000-XM3s, and I was annoyed by the fact that I couldn't change their settings while using my PC.
-So I reverse-engineered the application (for intercompatibility purposes, of course), defined the protocol, and created with an alternative application with [Mr-M33533K5](https://github.com/Mr-M33533K5).
-
-## Features
-
-- [x] Ambient Sound Control
-- [x] Disabling noise cancelling
-- [x] Virtual Sound - VPT and Sound Position
-- [ ] Display battery life and fetch existing settings from device
-- [ ] Equalizer
-
-## Supported Platforms And Headsets
-
-* WH-1000-XM3: Fully works and supported
-* [WH-1000-XM4](https://github.com/Plutoberth/SonyHeadphonesClient/issues/29#issuecomment-792459162): Partially works, more work is needed
-* [MDR-XB950BT](https://github.com/Plutoberth/SonyHeadphonesClient/issues/29#issuecomment-804292227): Fully works
-* And more! Check out [Headset Reports](https://github.com/Plutoberth/SonyHeadphonesClient/issues/29)
-
-#### **Please report about your experiences using other Sony headsets in the [Headset Reports](https://github.com/Plutoberth/SonyHeadphonesClient/issues/29) issue.**
-
-- [x] Windows
-- [x] Linux
-- [x] macOS
-- [ ] ~~TempleOS~~
-
-## For Developers
-
-```git clone --recurse-submodules https://github.com/Plutoberth/SonyHeadphonesClient.git```
-
-Issue this incantation to fix submodule issues:
-```sh
-git submodule sync
-git submodule update
+## Changes
+I edited the BLE device detection part slightly, and converted the project into a lightweight DLL project so that other developers can add the BLE feauture their projects easily.
+One can use CMake to create the dll directly.
 ```
-
-### Protocol Information
-
-Some enums and data are present in the code. The rest has to be obtained either statically or dynamically.
-
-Sniffing messages - See [this helpful comment](https://github.com/Plutoberth/SonyHeadphonesClient/pull/36#issuecomment-795633877) by @guilhermealbm.
-
-### Compiling
-
-#### Windows
-
-```
-cd Client
 mkdir build
 cd build
-cmake ..
+cmake ../
 cmake --build .
 ```
+that's all, you can use WindowsBluetoothAPI.h header before importing the DLL. Here is a simple test code;
+```cpp
+#include <Windows.h>
+#include <iostream>
+#include <vector>
 
-#### Linux
+#include "WindowsBluetoothAPI.h"
 
-Debian / Ubuntu:
+// Function pointer declarations using decltype
+decltype(&InitBluetooth) ptrInitBluetooth;
+decltype(&DisposeBluetooth) ptrDisposeBluetooth;
+decltype(&GetDevices) ptrGetDevices;
+decltype(&ConnectTo) ptrConnectTo;
+decltype(&Disconnect) ptrDisconnect;
+decltype(&Send) ptrSend;
+decltype(&Receive) ptrReceive;
 
-```bash
-sudo apt install libbluetooth-dev libglew-dev libglfw3-dev libdbus-1-dev
+bool loadBluetoothFunctions() {
+    HMODULE hModule = LoadLibrary(TEXT("___PATH_TO_YOUR_DLL___"));
+    if (!hModule) {
+        std::cerr << "Failed to load the DLL." << std::endl;
+        return false;
+    }
+
+    // Use decltype to ensure the correct function types
+    ptrInitBluetooth = reinterpret_cast<decltype(ptrInitBluetooth)>(GetProcAddress(hModule, "InitBluetooth"));
+    ptrDisposeBluetooth = reinterpret_cast<decltype(ptrDisposeBluetooth)>(GetProcAddress(hModule, "DisposeBluetooth"));
+    ptrGetDevices = reinterpret_cast<decltype(ptrGetDevices)>(GetProcAddress(hModule, "GetDevices"));
+    ptrConnectTo = reinterpret_cast<decltype(ptrConnectTo)>(GetProcAddress(hModule, "ConnectTo"));
+    ptrDisconnect = reinterpret_cast<decltype(ptrDisconnect)>(GetProcAddress(hModule, "Disconnect"));
+    ptrSend = reinterpret_cast<decltype(ptrSend)>(GetProcAddress(hModule, "Send"));
+    ptrReceive = reinterpret_cast<decltype(ptrReceive)>(GetProcAddress(hModule, "Receive"));
+
+    // Check if all functions were loaded successfully
+    if (!ptrInitBluetooth || !ptrDisposeBluetooth || !ptrGetDevices || !ptrConnectTo ||
+        !ptrDisconnect || !ptrSend || !ptrReceive) {
+        std::cerr << "Failed to load one or more functions." << std::endl;
+        FreeLibrary(hModule);
+        return false;
+    }
+
+    return true;
+}
+
+int main() {
+    if (!loadBluetoothFunctions()) {
+        std::cerr << "Bluetooth functions could not be loaded." << std::endl;
+        return 1;
+    }
+
+
+    // Example usage of the functions
+    if (ptrInitBluetooth() == BT_SUCCESS) {
+        std::cout << "Bluetooth initialized successfully." << std::endl;
+    }
+    else {
+        std::cerr << "Failed to initialize Bluetooth." << std::endl;
+        return 1;
+    }
+
+    BluetoothDevice* devices = NULL;
+    int size = 0;
+    ptrGetDevices(&devices, &size);
+
+    for (int i = 0; i < size; i++) {
+        std::cout << "Device ID: " << devices[i].id << std::endl;
+        std::cout << "Device Name: " << devices[i].name << std::endl;
+    }
+    int deviceId;
+    std::cout<<"Enter the device ID to connect: ";
+    std::cin>>deviceId;
+
+    if (ptrConnectTo(deviceId) == BT_SUCCESS) {
+		std::cout << "Connected to device with ID: " << deviceId << std::endl;
+	}
+    else {
+		std::cerr << "Failed to connect to device with ID: " << deviceId << std::endl;
+		return 1;
+	}
+
+    char* buffer = new char[1024];
+	int buffer_size = 1024;
+	std::cout<<"enter message to send: ";
+	std::cin>>buffer;
+    if (ptrSend(&buffer, buffer_size) == BT_SUCCESS) {
+		std::cout << "message sent successfully." << std::endl;
+	}
+    else {
+		std::cerr << "failed to send message." << std::endl;
+		return 1;
+	}
+    
+    while (true) {
+		int receivedBytes = 0;
+		char* receivedBuffer = new char[1024];
+        if (ptrReceive(&receivedBuffer, 1024, &receivedBytes) == BT_SUCCESS) {
+			std::cout << "Received message: " << receivedBuffer << std::endl;
+		}
+        else {
+			std::cerr << "Failed to receive message." << std::endl;
+			return 1;
+		}
+    }
+    // Clean up and close
+    if (ptrDisposeBluetooth() == BT_SUCCESS) {
+        std::cout << "Bluetooth disposed successfully." << std::endl;
+    }
+    else {
+        std::cerr << "Failed to dispose Bluetooth." << std::endl;
+        return 1;
+    }
+
+    return 0;
+}
+
 ```
-
-Fedora:
-```bash
-sudo dnf install bluez-libs-devel glew-devel glfw-devel dbus-devel
-```
-
-#### macOS
-
-Use the provided xcodeproj file.
-
-## Contributors
-
-* [Plutoberth](https://github.com/Plutoberth) - Initial Work and Windows Version
-* [Mr-M33533K5](https://github.com/Mr-M33533K5) - BT Interface and Other Help
-* [semvis123](https://github.com/semvis123) - macOS Version
-* [jimzrt](https://github.com/jimzrt) - Linux Version
-* [guilhermealbm](https://github.com/guilhermealbm) - Noise Cancelling Switch
-
-<!-- LICENSE -->
-## License
-
-Distributed under the [MIT License](https://github.com/Plutoberth/SonyHeadphonesClient/blob/master/LICENSE). See LICENSE for more information.
