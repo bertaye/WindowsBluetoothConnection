@@ -10,6 +10,7 @@
 #include "WindowsBluetoothConnector.h"
 WindowsBluetoothConnector *connector = NULL;
 std::vector<BluetoothDevice> ConnectedDevices;
+std::vector<BluetoothDevice> ScannedDevices;
 #else
 typedef struct BluetoothDevice {
 	int32_t id;
@@ -51,6 +52,7 @@ extern "C" {
 	BLUETOOTH_API int InitBluetooth();
 	BLUETOOTH_API int DisposeBluetooth();
 	BLUETOOTH_API int GetDevices(BluetoothDevice** devices, int* size);
+	BLUETOOTH_API int ScanDevices(BluetoothDevice** devices, int* size);
 	BLUETOOTH_API int ConnectTo(int deviceId);
 	BLUETOOTH_API int Disconnect();
 	BLUETOOTH_API int Send(char* buffer, int buffer_size);

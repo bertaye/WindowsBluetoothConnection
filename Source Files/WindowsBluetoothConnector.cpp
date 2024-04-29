@@ -113,6 +113,51 @@ std::vector<BluetoothDevice> WindowsBluetoothConnector::getConnectedDevices()
 	return res;
 }
 
+std::vector<BluetoothDevice> WindowsBluetoothConnector::scanDevices()
+{
+	std::vector<BluetoothDevice> res;
+	std::vector<BluetoothDevice> devsInRadio;
+
+	HANDLE radio = NULL;
+	BLUETOOTH_FIND_RADIO_PARAMS radioSearchParams = { sizeof(BLUETOOTH_FIND_RADIO_PARAMS) };
+	HBLUETOOTH_RADIO_FIND radioFindHandle = NULL;
+
+	// Search only for connected devices
+	BLUETOOTH_DEVICE_SEARCH_PARAMS dev_search_params = {};
+	dev_search_params.dwSize = sizeof(BLUETOOTH_DEVICE_SEARCH_PARAMS);
+	dev_search_params.fReturnAuthenticated = FALSE;
+	dev_search_params.fReturnRemembered = FALSE;
+	dev_search_params.fReturnUnknown = TRUE;
+	dev_search_params.fReturnConnected = FALSE;
+	dev_search_params.fIssueInquiry = TRUE;
+	dev_search_params.cTimeoutMultiplier = 2;
+	// Iterate for available bluetooth radio devices
+	radioFindHandle = BluetoothFindFirstRadio(&radioSearchParams, &radio);
+	if (!radioFindHandle)
+	{
+		if (ERROR_NO_MORE_ITEMS == GetLastError())
+		{
+			throw RecoverableException(NO_BLUETOOTH_DEVICES_ERROR);
+		}
+		else
+		{
+			throw std::runtime_error("BluetoothFindFirstRadio() failed with error code " + std::to_string(GetLastError()));
+		}
+	}
+
+	do {
+		dev_search_params.hRadio = radio;
+		devsInRadio = _findDevicesInRadio(&dev_search_params);
+		res.insert(res.end(), devsInRadio.begin(), devsInRadio.end());
+	} while (BluetoothFindNextRadio(radioFindHandle, &radio));
+
+	// No more radio, close the radio handle
+	if (!BluetoothFindRadioClose(radioFindHandle))
+		throw std::runtime_error("BluetoothFindRadioClose(bt) failed with error code " + std::to_string(GetLastError()));
+
+	return res;
+}
+
 void WindowsBluetoothConnector::disconnect() noexcept
 {
 	if (this->_socket != INVALID_SOCKET)

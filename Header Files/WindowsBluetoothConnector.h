@@ -27,6 +27,7 @@ public:
 	virtual bool isConnected() noexcept;
 
 	virtual std::vector<BluetoothDevice> getConnectedDevices() noexcept(false);
+	virtual std::vector<BluetoothDevice> scanDevices() noexcept(false);
 
 private:
 	std::vector<BluetoothDevice> _findDevicesInRadio(BLUETOOTH_DEVICE_SEARCH_PARAMS* searchParams);

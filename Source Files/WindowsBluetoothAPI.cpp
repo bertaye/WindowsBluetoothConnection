@@ -35,6 +35,21 @@ int GetDevices(BluetoothDevice** devices, int* size)
 	return BT_SUCCESS;
 }
 
+BLUETOOTH_API int ScanDevices(BluetoothDevice** devices, int* size)
+{
+	CHECK_INITIALIZATION();
+	try {
+		ConnectedDevices = connector->scanDevices();
+	}
+	catch (std::exception e)
+	{
+		return BT_ERROR;
+	}
+	(*devices) = ConnectedDevices.data();
+	(*size) = ConnectedDevices.size();
+	return BT_SUCCESS;
+}
+
 int ConnectTo(int id)
 {
 	CHECK_INITIALIZATION();
