@@ -62,12 +62,12 @@ int Disconnect()
 	return BT_SUCCESS;
 }
 
-int Send(char** buffer, int buffer_size)
+int Send(char* buffer, int buffer_size)
 {
 	CHECK_INITIALIZATION();
 	CHECK_IS_CONNECTED();
 	try {
-		connector->send(*buffer, buffer_size);
+		connector->send(buffer, buffer_size);
 	}
 	catch(std::exception e)
 	{

@@ -12,7 +12,7 @@ WindowsBluetoothConnector *connector = NULL;
 std::vector<BluetoothDevice> ConnectedDevices;
 #else
 typedef struct BluetoothDevice {
-	int16_t id;
+	int32_t id;
 	char name[512];
 	char mac[512];
 } BluetoothDevice;
@@ -44,7 +44,7 @@ typedef enum BluetoothResult {
 	BT_NOT_PAIRED = 7,
 	BT_NOT_READY = 8,
 	BT_NOT_ENABLED = 9,
-};
+}BluetoothResult;
 
 
 extern "C" {
@@ -53,7 +53,7 @@ extern "C" {
 	BLUETOOTH_API int GetDevices(BluetoothDevice** devices, int* size);
 	BLUETOOTH_API int ConnectTo(int deviceId);
 	BLUETOOTH_API int Disconnect();
-	BLUETOOTH_API int Send(char** buffer, int buffer_size);
+	BLUETOOTH_API int Send(char* buffer, int buffer_size);
 	BLUETOOTH_API int Receive(char** buffer, int buffer_size, int* receivedBytes);
 }
 
